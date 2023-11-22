@@ -67,15 +67,37 @@ df = spark.read.format("jdbc").option("url", "jdbc:mysql://localhost:3306/your_d
 # Example: How does the Day of a Week affect the number of earthquakes?
 df.withColumn("DayOfWeek", dayofweek("Date")).groupBy("DayOfWeek").count().show()
 
-from pyspark.sql import SparkSession
-from pyspark.sql.functions import dayofweek, month, year, col
+# What is the relation between Day of the month and Number of earthquakes that happened in a year?
+day_month_relation = df.groupBy(year("Date").alias("Year"), month("Date").alias("Month"), dayofmonth("Date").alias("DayOfMonth")).count()
 
-# Create a Spark session
-spark = SparkSession.builder.appName("EarthquakeAnalysis").getOrCreate()
+# What does the average frequency of earthquakes in a month from the year 1965 to 2016 tell us?
+avg_frequency_by_month = df.filter((year("Date") >= 1965) & (year("Date") <= 2016)).groupBy(month("Date").alias("Month")).agg(avg("Magnitude").alias("Average_Magnitude"), count("ID").alias("Number_of_Earthquakes"))
 
-# Read data from MySQL into PySpark DataFrame
-df = spark.read.format("jdbc").option("url", "jdbc:mysql://localhost:3306/your_db").option("dbtable", "neic_earthquakes").option("user", "your_user").option("password", "your_password").load()
+# What is the relation between Year and Number of earthquakes that happened in that year?
+year_relation = df.groupBy(year("Date").alias("Year")).count()
 
-# Answer the questions using PySpark functions
-# Example: How does the Day of a Week affect the number of earthquakes?
-df.withColumn("DayOfWeek", dayofweek("Date")).groupBy("DayOfWeek").count().show()
+# How has the earthquake magnitude on average been varied over the years?
+magnitude_variation = df.groupBy(year("Date").alias("Year")).agg(avg("Magnitude").alias("Average_Magnitude"))
+
+# How does year impact the standard deviation of the earthquakes?
+magnitude_std_deviation = df.groupBy(year("Date").alias("Year")).agg(stddev("Magnitude").alias("Magnitude_StdDev"))
+
+# Does geographic location have anything to do with earthquakes?
+location_analysis = df.groupBy("Location_Source").agg(count("ID").alias("Number_of_Earthquakes")).orderBy(col("Number_of_Earthquakes").desc())
+
+# Where do earthquakes occur very frequently?
+frequent_locations = location_analysis.filter(col("Number_of_Earthquakes") > 100)
+
+# What is the relation between Magnitude, Magnitude Type, Status and Root Mean Square of the earthquakes?
+magnitude_relation = df.groupBy("Magnitude", "Magnitude_Type", "Status", "Root_Mean_Square").count()
+
+# Show results
+day_month_relation.show()
+avg_frequency_by_month.show()
+year_relation.show()
+magnitude_variation.show()
+magnitude_std_deviation.show()
+location_analysis.show()
+frequent_locations.show()
+magnitude_relation.show()
+
