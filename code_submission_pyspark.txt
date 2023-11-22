@@ -1,0 +1,81 @@
+pip install pyspark
+pip install mysql-connector-python
+
+CREATE TABLE neic_earthquakes (
+    Date DATE,
+    Time TIME,
+    Latitude FLOAT,
+    Longitude FLOAT,
+    Type VARCHAR(50),
+    Depth FLOAT,
+    Depth_Error FLOAT,
+    Depth_Seismic_Stations INT,
+    Magnitude FLOAT,
+    Magnitude_Type VARCHAR(10),
+    Magnitude_Error FLOAT,
+    Magnitude_Seismic_Stations INT,
+    Azimuthal_Gap FLOAT,
+    Horizontal_Distance FLOAT,
+    Horizontal_Error FLOAT,
+    Root_Mean_Square FLOAT,
+    ID VARCHAR(20),
+    Source VARCHAR(20),
+    Location_Source VARCHAR(20),
+    Magnitude_Source VARCHAR(20),
+    Status VARCHAR(20)
+);
+
+import pandas as pd
+import mysql.connector
+from pyspark.sql import SparkSession
+
+# Load data into Pandas DataFrame
+data = pd.read_csv('path/to/your/dataset.csv')
+
+# Connect to MySQL and create neic_earthquakes table
+conn = mysql.connector.connect(host='localhost', user='your_user', password='your_password', database='your_db')
+cursor = conn.cursor()
+
+# Insert data into MySQL
+for index, row in data.iterrows():
+    cursor.execute(f"""
+        INSERT INTO neic_earthquakes VALUES (
+            '{row['Date']}', '{row['Time']}', {row['Latitude']}, {row['Longitude']}, 
+            '{row['Type']}', {row['Depth']}, {row['Depth Error']}, {row['Depth Seismic Stations']}, 
+            {row['Magnitude']}, '{row['Magnitude Type']}', {row['Magnitude Error']}, 
+            {row['Magnitude Seismic Stations']}, {row['Azimuthal Gap']}, {row['Horizontal Distance']}, 
+            {row['Horizontal Error']}, {row['Root Mean Square']}, '{row['ID']}', 
+            '{row['Source']}', '{row['Location Source']}', '{row['Magnitude Source']}', 
+            '{row['Status']}'
+        )
+    """)
+
+conn.commit()
+cursor.close()
+conn.close()
+
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import dayofweek, month, year, col
+
+# Create a Spark session
+spark = SparkSession.builder.appName("EarthquakeAnalysis").getOrCreate()
+
+# Read data from MySQL into PySpark DataFrame
+df = spark.read.format("jdbc").option("url", "jdbc:mysql://localhost:3306/your_db").option("dbtable", "neic_earthquakes").option("user", "your_user").option("password", "your_password").load()
+
+# Answer the questions using PySpark functions
+# Example: How does the Day of a Week affect the number of earthquakes?
+df.withColumn("DayOfWeek", dayofweek("Date")).groupBy("DayOfWeek").count().show()
+
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import dayofweek, month, year, col
+
+# Create a Spark session
+spark = SparkSession.builder.appName("EarthquakeAnalysis").getOrCreate()
+
+# Read data from MySQL into PySpark DataFrame
+df = spark.read.format("jdbc").option("url", "jdbc:mysql://localhost:3306/your_db").option("dbtable", "neic_earthquakes").option("user", "your_user").option("password", "your_password").load()
+
+# Answer the questions using PySpark functions
+# Example: How does the Day of a Week affect the number of earthquakes?
+df.withColumn("DayOfWeek", dayofweek("Date")).groupBy("DayOfWeek").count().show()
